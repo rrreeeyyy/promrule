@@ -22,7 +22,67 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```
+$ promrule -g -f examples/Alertfile
+```
+
+If you wrote below Alertfile and then execute above commands,
+
+```
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+groups do |*|
+  name "my-group-name"
+  interval "30s"
+
+  rules do |*|
+    record "instance:errors:rate5m"
+    expr "rate(errors_total[5m])"
+  end
+
+  rules do |*|
+    record "instance:requests:rate5m"
+    expr "rate(requests_total[5m])"
+  end
+
+  rules do |*|
+    alert "HighErrors"
+    expr "sum without(instance) (instance:errors:rate5m) / sum without(instance) (instance:requests:rate5m)"
+
+    _for "5m"
+
+    labels do
+      severity "Critical"
+    end
+
+    annotations do
+      description "stuff's happening with {{ $labels.service }}"
+    end
+  end
+end
+```
+
+Promrule generates this valid prometheus rule file
+
+```
+---
+groups:
+- name: my-group-name
+  interval: 30s
+  rules:
+  - record: instance:errors:rate5m
+    expr: rate(errors_total[5m])
+  - record: instance:requests:rate5m
+    expr: rate(requests_total[5m])
+  - alert: HighErrors
+    expr: sum without(instance) (instance:errors:rate5m) / sum without(instance) (instance:requests:rate5m)
+    for: 5m
+    labels:
+      severity: Critical
+    annotations:
+      description: stuff's happening with {{ $labels.service }}
+```
 
 ## Development
 
