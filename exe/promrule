@@ -1,3 +1,53 @@
 #!/usr/bin/env ruby
 
+$LOAD_PATH << File.expand_path('../../lib', __FILE__)
+
 require "promrule"
+require "optparse"
+require "dslh"
+
+DEFAULT_FILENAME = "Rulefile"
+Version = Promrule::VERSION
+
+def parse_options(argv)
+  options = {
+    file: DEFAULT_FILENAME,
+  }
+
+  parser = OptionParser.new
+  parser.on("-g", "--generate") { options[:mode] = :generate }
+  parser.on("-f", "--file FILE") { |v| options[:file] = v }
+
+  parser.parse!(argv)
+
+  unless options[:mode]
+    puts parser.help
+    exit 1
+  end
+
+  options
+end
+
+def main(argv)
+  options = parse_options(argv)
+
+  case options[:mode]
+  when :generate
+    file = options[:file]
+    unless File.exist?(file)
+      raise "Alertfile not found (looking for: #{file})"
+    end
+
+    # XXX
+    content = File.read(File.path(file))
+    puts Dslh.eval(
+      content,
+      filename: file,
+      key_conv: proc { |k| k = k.to_s; k.gsub!('_for', 'for'); k }
+    ).to_yaml
+  else
+    puts "Not implemented mode found, see #{PROGNAME} -h"
+  end
+end
+
+main(ARGV)
